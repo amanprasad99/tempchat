@@ -1,0 +1,298 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TempChat | Secure Ephemeral Real-Time Chat</title>
+    <!-- Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- QRCode Generator CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body class="dark-theme">
+    <!-- Ambient Background Lighting Orbs -->
+    <div class="ambient-glow orb-1"></div>
+    <div class="ambient-glow orb-2"></div>
+    <div class="ambient-glow orb-3"></div>
+
+    <div class="app-wrapper">
+        <!-- Toast Notification Container -->
+        <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+        <!-- LANDING & AUTH PANEL -->
+        <section id="authSection" class="glass-card landing-card">
+            <div class="brand-header">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-bolt-lightning"></i>
+                </div>
+                <h1>TempChat</h1>
+                <p class="subtitle">Private, pin-gated real-time rooms. No sign-up required. Auto-wiped on exit.</p>
+            </div>
+
+            <!-- Tab Buttons -->
+            <div class="tab-switcher">
+                <button id="tabCreateBtn" class="tab-btn active"><i class="fa-solid fa-plus-circle"></i> Create Room</button>
+                <button id="tabJoinBtn" class="tab-btn"><i class="fa-solid fa-key"></i> Join Room</button>
+            </div>
+
+            <!-- Avatar Preview Bar -->
+            <div class="avatar-selection-wrapper">
+                <label>Choose Avatar & Nickname</label>
+                <div class="avatar-preview-row">
+                    <img id="userAvatarPreview" src="https://api.dicebear.com/7.x/bottts/svg?seed=TempChatUser" alt="Avatar Preview" class="avatar-img-lg">
+                    <button id="randomizeAvatarBtn" type="button" class="icon-btn-secondary" title="Randomize Avatar">
+                        <i class="fa-solid fa-dice"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Form Tab 1: Create Room -->
+            <form id="createForm" class="auth-form">
+                <div class="input-group">
+                    <i class="fa-solid fa-user input-icon"></i>
+                    <input type="text" id="createUsername" placeholder="Your Nickname (e.g. Alex)" maxlength="30" required autocomplete="off">
+                </div>
+
+                <!-- Passcode Valid Duration Selector -->
+                <div class="input-group">
+                    <i class="fa-solid fa-hourglass-half input-icon"></i>
+                    <select id="createDuration" class="select-field" title="Passcode Valid Duration">
+                        <option value="5">Passcode Valid for 5 Minutes ⚡</option>
+                        <option value="15">Passcode Valid for 15 Minutes ⏱️</option>
+                        <option value="60" selected>Passcode Valid for 1 Hour (Default) 🕒</option>
+                        <option value="1440">Passcode Valid for 24 Hours ⏳</option>
+                    </select>
+                </div>
+
+                <button type="submit" id="createRoomSubmitBtn" class="btn-primary btn-block">
+                    <i class="fa-solid fa-shield-halved"></i> Generate Room & Passcode
+                </button>
+            </form>
+
+            <!-- Form Tab 2: Join Room -->
+            <form id="joinForm" class="auth-form hidden">
+                <div class="input-group">
+                    <i class="fa-solid fa-user input-icon"></i>
+                    <input type="text" id="joinUsername" placeholder="Your Nickname" maxlength="30" required autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <i class="fa-solid fa-lock input-icon"></i>
+                    <input type="text" id="joinPassword" placeholder="6-Digit Passcode" maxlength="6" inputmode="numeric" pattern="\d{6}" required autocomplete="off">
+                </div>
+                <button type="submit" id="joinRoomSubmitBtn" class="btn-primary btn-block">
+                    <i class="fa-solid fa-door-open"></i> Join Room Chat
+                </button>
+            </form>
+
+            <div class="feature-pills">
+                <span><i class="fa-solid fa-user-shield"></i> Pin Passcode Protected</span>
+                <span><i class="fa-solid fa-clock"></i> Timed Passcodes</span>
+                <span><i class="fa-solid fa-fire-flame-curved"></i> Zero Logs</span>
+            </div>
+        </section>
+
+        <!-- ROOM GENERATED MODAL / DISPLAY -->
+        <section id="passwordSection" class="glass-card modal-card hidden">
+            <div class="modal-header">
+                <div class="badge-success"><i class="fa-solid fa-circle-check"></i> Room Created</div>
+                <h2>Your Temp Room is Ready</h2>
+                <p>Share this 6-digit passcode or link with participants.</p>
+            </div>
+
+            <div class="passcode-display-box">
+                <span class="passcode-label">ROOM PASSCODE</span>
+                <div id="generatedPassword" class="passcode-code">000000</div>
+                <div id="passcodeExpiryNotice" class="expiry-badge"><i class="fa-regular fa-clock"></i> Valid for 60 mins</div>
+                <button id="copyPasscodeBtn" class="btn-secondary btn-sm" style="margin-top: 10px;">
+                    <i class="fa-regular fa-copy"></i> Copy PIN
+                </button>
+            </div>
+
+            <!-- Share Link & QR Code Row -->
+            <div class="share-options">
+                <div class="share-link-group">
+                    <input type="text" id="shareableLinkInput" readonly>
+                    <button id="copyShareLinkBtn" class="btn-secondary btn-sm" title="Copy Direct Invite Link">
+                        <i class="fa-solid fa-link"></i> Copy Link
+                    </button>
+                </div>
+
+                <div class="qr-code-wrapper">
+                    <p class="qr-title"><i class="fa-solid fa-qrcode"></i> Mobile QR Invite Scan</p>
+                    <div id="qrcode" class="qr-container"></div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="startChatBtn" class="btn-primary btn-block">
+                    <i class="fa-solid fa-comments"></i> Enter Chat Room Now
+                </button>
+            </div>
+        </section>
+
+        <!-- MAIN CHAT ROOM APPLICATION WORKSPACE -->
+        <section id="roomSection" class="chat-app-container hidden">
+            <!-- App Navigation Bar / Header -->
+            <header class="chat-header">
+                <div class="chat-header-brand">
+                    <div class="room-status-dot"></div>
+                    <div>
+                        <h2 class="room-title">TempChat Room</h2>
+                        <div class="room-meta-pills">
+                            <span class="pin-badge" id="headerPinBadge" title="Click to copy passcode">
+                                <i class="fa-solid fa-key"></i> <strong id="roomPasswordDisplay">------</strong>
+                            </span>
+                            <span class="timer-badge" id="headerTimerBadge" title="Time remaining before room wipe">
+                                <i class="fa-solid fa-stopwatch"></i> <strong id="roomTimerDisplay">00:00</strong>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-header-actions">
+                    <button id="toggleMembersBtn" class="header-action-btn" title="Toggle Members List">
+                        <i class="fa-solid fa-users"></i> <span id="membersCountBadge">1</span>
+                    </button>
+                    <button id="shareRoomBtn" class="header-action-btn" title="Share Invite Link">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </button>
+                    <button id="toggleSoundBtn" class="header-action-btn" title="Toggle Chat Audio FX">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                    <button id="nukeBtn" class="header-action-btn btn-danger hidden" title="Nuke & Destroy Room (Host)">
+                        <i class="fa-solid fa-bomb"></i>
+                    </button>
+                    <button id="leaveBtn" class="header-action-btn btn-leave" title="Leave Room">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Main Chat Workspace Layout (Messages Stream + Sidebar) -->
+            <div class="chat-body">
+                <!-- Chat Messages Main Area -->
+                <div class="chat-main-panel" id="dropZoneOverlay">
+                    <!-- Dropzone Notice Overlay -->
+                    <div id="dragDropNotice" class="drag-drop-notice hidden">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <h3>Drop File to Share in Chat</h3>
+                        <p>Images, videos, audio notes or documents up to 20MB</p>
+                    </div>
+
+                    <!-- Room System Banner -->
+                    <div class="room-info-banner">
+                        <i class="fa-solid fa-shield-cat"></i>
+                        <span>Temporary Room • Messages are auto-destroyed when timer expires or room empties.</span>
+                    </div>
+
+                    <!-- Messages Scroll View -->
+                    <div id="messages" class="messages-container" aria-live="polite"></div>
+
+                    <!-- Live Typing Indicator -->
+                    <div id="typingIndicator" class="typing-indicator hidden">
+                        <div class="dots-pulse">
+                            <span></span><span></span><span></span>
+                        </div>
+                        <span id="typingText" class="typing-text">Someone is typing...</span>
+                    </div>
+                </div>
+
+                <!-- Members Sidebar Drawer -->
+                <aside id="membersSidebar" class="members-sidebar">
+                    <div class="sidebar-header">
+                        <h3><i class="fa-solid fa-users"></i> Active Room Members</h3>
+                        <button id="closeSidebarBtn" class="icon-btn-close"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div id="membersList" class="members-list">
+                        <!-- Populated dynamically -->
+                    </div>
+                    <div class="sidebar-footer">
+                        <div class="room-stat-item">
+                            <span class="stat-label">Session ID</span>
+                            <span class="stat-value" id="sidebarRoomId">---</span>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- Chat Footer Input Area -->
+            <footer class="chat-footer">
+                <!-- Reply Context Banner -->
+                <div id="replyBar" class="reply-banner hidden">
+                    <div class="reply-info">
+                        <i class="fa-solid fa-reply"></i>
+                        <span>Replying to <strong id="replyAuthor">Someone</strong>: </span>
+                        <em id="replyTextSnippet">"..."</em>
+                    </div>
+                    <button id="cancelReplyBtn" class="reply-close-btn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <!-- Selected Attachment Banner -->
+                <div id="attachmentBar" class="attachment-preview-banner hidden">
+                    <div class="attachment-preview-info">
+                        <i id="attachmentIcon" class="fa-solid fa-file"></i>
+                        <span id="attachmentName">file.pdf</span>
+                        <span id="attachmentSize" class="size-pill">0 KB</span>
+                    </div>
+                    <button id="removeAttachmentBtn" class="reply-close-btn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <!-- Input Controls Bar -->
+                <div class="chat-input-controls">
+                    <!-- File Upload Button -->
+                    <input type="file" id="fileInput" class="hidden">
+                    <button id="attachFileBtn" class="input-action-btn" title="Attach Image or File">
+                        <i class="fa-solid fa-paperclip"></i>
+                    </button>
+
+                    <!-- Emoji Picker Trigger -->
+                    <div class="emoji-picker-container">
+                        <button id="emojiToggleBtn" class="input-action-btn" title="Add Emoji">
+                            <i class="fa-regular fa-face-smile"></i>
+                        </button>
+
+                        <!-- Emoji Popover Menu -->
+                        <div id="emojiPicker" class="emoji-picker-menu hidden">
+                            <div class="emoji-grid">
+                                <span>😀</span><span>😂</span><span>😍</span><span>🔥</span><span>👍</span>
+                                <span>❤️</span><span>🎉</span><span>🚀</span><span>👏</span><span>😎</span>
+                                <span>🤔</span><span>💯</span><span>✨</span><span>💀</span><span>🥳</span>
+                                <span>💩</span><span>👀</span><span>🙌</span><span>⚡</span><span>💪</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Message Text Input -->
+                    <div class="input-field-wrapper">
+                        <input type="text" id="messageInput" placeholder="Type a message or drop files..." maxlength="3000" autocomplete="off">
+                    </div>
+
+                    <!-- Send Button -->
+                    <button id="sendBtn" class="send-btn" title="Send Message">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </footer>
+        </section>
+    </div>
+
+    <!-- IMAGE LIGHTBOX MODAL -->
+    <div id="lightboxModal" class="lightbox-modal hidden">
+        <span id="closeLightbox" class="lightbox-close"><i class="fa-solid fa-xmark"></i></span>
+        <img id="lightboxImg" class="lightbox-content" alt="Enlarged chat image">
+        <div id="lightboxCaption" class="lightbox-caption"></div>
+    </div>
+
+    <!-- Socket.io Client Script CDN -->
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <!-- Application JavaScript Logic -->
+    <script src="javascript.js" defer></script>
+</body>
+</html>
