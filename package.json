@@ -1,0 +1,19 @@
+{
+  "name": "tempchat",
+  "version": "1.0.0",
+  "description": "Temporary chat application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "express": "^5.2.1",
+    "multer": "^2.4.0",
+    "socket.io": "^4.8.4"
+  }
+}
